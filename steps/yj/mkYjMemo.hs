@@ -8,7 +8,7 @@ main = do
 	runQ decs >>= print . ppr
 
 decs :: Q [Dec]
-decs = return $ [ derivDec ] ++ parseDec
+decs = return $ [ derivDec ] ++ parseDec ++ pYj ++ pY ++ pJ
 
 defBang :: Bang
 defBang = Bang NoSourceUnpackedness NoSourceStrictness
@@ -83,3 +83,58 @@ capitalize "" = ""
 
 arrT :: Type -> Type -> Type
 t1 `arrT` t2 = ArrowT `AppT` t1 `AppT` t2
+
+pYj :: [Dec]
+pYj = [	mkTypeDec (mkName "pYj") iniIniType,
+	FunD (mkName "pYj") [Clause [VarP $ mkName "d"] (NormalB $ DoE [
+		BindS (TupP [VarP $ mkName "y'", VarP $ mkName "d'"])
+			$ VarE (mkName "y") `AppE` VarE (mkName "d"),
+		BindS (TupP [VarP $ mkName "j'", VarP $ mkName "d''"])
+			$ VarE (mkName "j") `AppE` VarE (mkName "d'"),
+		NoBindS $ VarE 'return `AppE` TupE [
+			TupE [
+				VarE $ mkName "y'",
+				VarE $ mkName "j'"
+				],
+			VarE $ mkName "d''" ] ]) []]
+	]
+
+pY :: [Dec]
+pY = [	mkTypeDec (mkName "pY") iniType,
+	FunD (mkName "pY") [Clause [VarP $ mkName "d"] (NormalB $ DoE [
+		BindS (TupP [VarP $ mkName "y'", VarP $ mkName "d'"])
+			$ VarE (mkName "char") `AppE` VarE (mkName "d"),
+		NoBindS $ CaseE (VarE $ mkName "y'") [
+			Match (LitP $ CharL 'Y') (NormalB $
+				VarE 'return `AppE` TupE [
+					ConE $ mkName "Y",
+					VarE $ mkName "d'"
+					]) [],
+			Match WildP (NormalB $
+				VarE 'fail `AppE`
+					LitE (StringL "not parsed")) []
+			]
+		]) [] ]
+	]
+
+pJ :: [Dec]
+pJ = [	mkTypeDec (mkName "pJ") iniType,
+	FunD (mkName "pJ") [Clause [VarP $ mkName "d"] (NormalB $ DoE [
+		BindS (TupP [VarP $ mkName "j'", VarP $ mkName "d'"])
+			$ VarE (mkName "char") `AppE` VarE (mkName "d"),
+		NoBindS $ CaseE (VarE $ mkName "j'") [
+			Match (LitP $ CharL 'J') (NormalB $
+				VarE 'return `AppE` TupE [
+					ConE $ mkName "J",
+					VarE $ mkName "d'"
+					]) [],
+			Match WildP (NormalB $
+				VarE 'fail `AppE`
+					LitE (StringL "not parsed")) []
+			]
+		]) [] ]
+	]
+
+mkTypeDec :: Name -> Type -> Dec
+mkTypeDec n t = SigD n $ ConT (mkName "Derivs") `arrT`
+	(ConT ''Maybe `AppT` withDerivsType t)
