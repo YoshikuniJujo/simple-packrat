@@ -1,11 +1,10 @@
 {-# LANGUAGE TemplateHaskell #-}
 
+module MkYjMemo (decs) where
+
 import Data.Char
 import Language.Haskell.TH
 
-main :: IO ()
-main = do
-	runQ decs >>= print . ppr
 
 decs :: Q [Dec]
 decs = return $ [ derivDec ] ++ parseDec ++ pYj ++ pY ++ pJ
@@ -69,12 +68,12 @@ parseDec = [
 		[]
 	caseS = CaseE (VarE $ mkName "s") [
 		Match (InfixP (VarP $ mkName "c") '(:) (VarP $ mkName "cs"))
-			(NormalB $ VarE 'Just `AppE`
+			(NormalB $ ConE 'Just `AppE`
 				TupE [	VarE $ mkName "c",
 					VarE (mkName "parse") `AppE`
 						VarE (mkName "cs")
 					]) [],
-		Match WildP (NormalB $ VarE 'Nothing) []
+		Match WildP (NormalB $ ConE 'Nothing) []
 		]
 
 capitalize :: String -> String
