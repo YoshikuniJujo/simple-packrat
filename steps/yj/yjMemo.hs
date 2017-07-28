@@ -1,74 +1,43 @@
-{-# LANGUAGE TypeFamilies #-}
-
-import Text.Papillon
-import Control.Monad.Trans.State.Lazy
-import Control.Monad.Trans.Error
-import Control.Monad.State.Class
-import Control.Monad.Error.Class
-import Data.Functor.Identity
-import GHC.Base
-
 import System.Environment
 
 main :: IO ()
-main = do
-	str : _ <- getArgs
-	case runError . yj $ parse str of
-		Left e -> putStrLn $ peMessage e
-		Right (r, _) -> print r
+main = print . (fst <$>) . yj . parse . head =<< getArgs
 
 data Initial = Y | J deriving Show
 
-data Derivs
-    = Derivs {yj :: (Control.Monad.Trans.Error.ErrorT (ParseError (Pos String)
-                                                                  Derivs)
-                                                      Data.Functor.Identity.Identity
-                                                      ((Initial, Initial), Derivs)),
-              y :: (Control.Monad.Trans.Error.ErrorT (ParseError (Pos String)
-                                                                 Derivs)
-                                                     Data.Functor.Identity.Identity
-                                                     (Initial, Derivs)),
-              j :: (Control.Monad.Trans.Error.ErrorT (ParseError (Pos String)
-                                                                 Derivs)
-                                                     Data.Functor.Identity.Identity
-                                                     (Initial, Derivs)),
-              char :: (Control.Monad.Trans.Error.ErrorT (ParseError (Pos String)
-                                                                    Derivs)
-                                                        Data.Functor.Identity.Identity
-                                                        (Token String, Derivs)),
-              position :: (Control.Monad.Trans.Error.ErrorT (ParseError (Pos String)
-                                                                        Derivs)
-                                                            Data.Functor.Identity.Identity
-                                                            (Pos String, Derivs))}
+data Derivs = Derivs {
+	yj :: Maybe ((Initial, Initial), Derivs),
+	y :: Maybe (Initial, Derivs),
+	j :: Maybe (Initial, Derivs),
+	char :: Maybe (Char, Derivs) }
+
 parse :: String -> Derivs
-parse = parse11_0 initialPos
-          where parse11_0 pos7_1 s10_2 = d9_3
-                              where d9_3 = Derivs yj1_4 y2_5 j3_6 chars8_7 (return (pos7_1,
-                                                                                    d9_3))
-                                    yj1_4 = Control.Monad.Trans.State.Lazy.runStateT yj4_8 d9_3
-                                    y2_5 = Control.Monad.Trans.State.Lazy.runStateT y5_9 d9_3
-                                    j3_6 = Control.Monad.Trans.State.Lazy.runStateT j6_10 d9_3
-                                    chars8_7 = Control.Monad.Trans.State.Lazy.runStateT (case getToken s10_2 of
-                                                                                             Just (c12_11,
-                                                                                                   s'13_12) -> do {Control.Monad.State.Class.put (parse11_0 (updatePos c12_11 pos7_1) s'13_12);
-                                                                                                                   return c12_11}
-                                                                                             _ -> Control.Monad.Trans.State.Lazy.StateT position >>= (Control.Monad.Error.Class.throwError . mkParseError "" "end of input" "" undefined [])) d9_3
-                yj4_8 = foldl1 GHC.Base.mplus [do {y <- Control.Monad.Trans.State.Lazy.StateT y;
-                                                   j <- Control.Monad.Trans.State.Lazy.StateT j;
-                                                   return (y, j)}]
-                y5_9 = foldl1 GHC.Base.mplus [do {d15_13 <- Control.Monad.State.Class.get;
-                                                  t18_14 <- Control.Monad.Trans.State.Lazy.StateT char;
-                                                  case t18_14 of {
-                                                      'Y' -> return ();
-                                                      _ -> Control.Monad.Trans.State.Lazy.StateT position >>= (Control.Monad.Error.Class.throwError . mkParseError "'Y'" "not match pattern: " "" d15_13 ["char"]) };
-                                                  let {'Y' = t18_14};
-                                                  return ();
-                                                  return Y}]
-                j6_10 = foldl1 GHC.Base.mplus [do {d19_15 <- Control.Monad.State.Class.get;
-                                                   t20_16 <- Control.Monad.Trans.State.Lazy.StateT char;
-                                                   case t20_16 of {
-                                                       'J' -> return ();
-                                                       _ -> Control.Monad.Trans.State.Lazy.StateT position >>= (Control.Monad.Error.Class.throwError . mkParseError "'J'" "not match pattern: " "" d19_15 ["char"]) };
-                                                   let {'J' = t20_16};
-                                                   return ();
-                                                   return J}]
+parse s = d
+	where
+	d = Derivs yj' y' j' c'
+	yj' = pYj d
+	y' = pY d
+	j' = pJ d
+	c' = case s of
+		(c : cs) -> Just (c, parse cs)
+		_ -> Nothing
+
+pYj :: Derivs -> Maybe ((Initial, Initial), Derivs)
+pYj d = do
+	(y', d') <- y d
+	(j', d'') <- j d'
+	return ((y', j'), d'')
+
+pY :: Derivs -> Maybe (Initial, Derivs)
+pY d = do
+	(y', d') <- char d
+	case y' of
+		'Y' -> return (Y, d')
+		_ -> fail "not parsed"
+
+pJ :: Derivs -> Maybe (Initial, Derivs)
+pJ d = do
+	(j', d') <- char d
+	case j' of
+		'J' -> return (J, d')
+		_ -> fail "not parsed"
