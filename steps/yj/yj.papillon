@@ -1,0 +1,8 @@
+yj :: (Initial, Initial)
+	= y:y j:j		{ (y, j) }
+
+y :: Initial
+	= 'Y':char		{ Y }
+
+j :: Initial
+	= 'J':char		{ J }
