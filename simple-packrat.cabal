@@ -27,6 +27,41 @@ executable simple-packrat-exe
                      , simple-packrat
   default-language:    Haskell2010
 
+executable helloRecurse
+  hs-source-dirs:      steps
+  main-is:             helloRecurse.hs
+  other-modules:       Lexer
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -fno-warn-tabs
+  build-depends:       base
+                     , simple-packrat
+  default-language:    Haskell2010
+
+executable helloMonad
+  hs-source-dirs:      steps
+  main-is:             helloMonad.hs
+  other-modules:       Lexer
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -fno-warn-tabs
+  build-depends:       base
+                     , simple-packrat
+  default-language:    Haskell2010
+
+executable helloMemo
+  hs-source-dirs:      steps
+  main-is:             helloMemo.hs
+  other-modules:       Lexer
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -fno-warn-tabs
+  build-depends:       base
+                     , simple-packrat
+  default-language:    Haskell2010
+
+executable helloPapillon
+  hs-source-dirs:      steps
+  main-is:             helloPapillon.hs
+  other-modules:       Lexer
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -fno-warn-tabs
+  build-depends:       base, simple-packrat, papillon
+  default-language:    Haskell2010
+
 test-suite simple-packrat-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
