@@ -27,11 +27,11 @@ hello :: (MyToken, MyToken)
 	= g:greeting n:name	{ (g, n) }
 
 greeting :: MyToken
-	= Hello			{ Hello }
-	/ GoodBye		{ GoodBye }
+	= Hello:char		{ Hello }
+	/ GoodBye:char		{ GoodBye }
 
 name :: MyToken
-	= World			{ World }
-	/ Yoshikuni		{ Yoshikuni }
+	= World:char		{ World }
+	/ Yoshikuni:char	{ Yoshikuni }
 
 |]
