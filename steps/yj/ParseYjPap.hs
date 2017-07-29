@@ -1,17 +1,15 @@
 {-# LANGUAGE QuasiQuotes, TypeFamilies #-}
 
+module ParseYjPap (parseYjPap) where
+
 import Data.Char
 import Text.Papillon
-import System.Environment
 import Language.Haskell.TH
 
-
-main :: IO ()
-main = do
-	str <- getContents
-	case runError . rules $ parse str of
-		Left e -> putStrLn $ peMessage e
-		Right (r, _) -> print r
+parseYjPap :: String -> Either String Rules
+parseYjPap src = case runError . rules $ parse src of
+	Left e -> Left $ peMessage e
+	Right (r, _) -> Right r
 
 type Rules = [Rule]
 
