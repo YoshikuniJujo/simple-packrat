@@ -2,7 +2,7 @@
 
 module ParseYjPap (
 	parseYjPap,
-	Rules, Rule(..), Def, Def1, Result) where
+	Rules, Rule(..), Def, Def1, Result, ruleName) where
 
 import Data.Char
 import Text.Papillon
@@ -16,6 +16,9 @@ parseYjPap src = case runError . rules $ parse src of
 type Rules = [Rule]
 
 data Rule = Rule Name Type Def Result deriving Show
+
+ruleName :: Rule -> Name
+ruleName (Rule n _ _ _) = n
 
 type Def = [Def1]
 type Def1 = (Pat, Name)
