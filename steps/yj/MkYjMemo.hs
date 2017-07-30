@@ -5,7 +5,6 @@ module MkYjMemo (decs) where
 import Data.Char
 import Language.Haskell.TH
 
-
 decs :: Q [Dec]
 decs = return $ [ derivDec ] ++ parseDec ++ pYj ++ pY ++ pJ
 

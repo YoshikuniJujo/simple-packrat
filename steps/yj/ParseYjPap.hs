@@ -1,6 +1,8 @@
 {-# LANGUAGE QuasiQuotes, TypeFamilies #-}
 
-module ParseYjPap (parseYjPap) where
+module ParseYjPap (
+	parseYjPap,
+	Rules, Rule(..), Def, Def1, Result) where
 
 import Data.Char
 import Text.Papillon
