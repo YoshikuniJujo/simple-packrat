@@ -1,7 +1,5 @@
 {-# LANGUAGE QuasiQuotes #-}
 
-import Language.Haskell.TH
-import Language.Haskell.TH.Quote
 import System.Environment
 
 import MakeYjPap
@@ -11,7 +9,7 @@ main = do
 	src : _ <- getArgs
 	print . (fst <$>) . yj $ parse src
 
-data Initial = Y | J deriving Show
+data Initial = Y | M | J deriving Show
 
 [pap|
 
@@ -20,6 +18,7 @@ yj :: (Initial, Initial)
 ;
 y :: Initial
 	= 'Y':char		{ Y }
+	/ 'M':char		{ M }
 ;
 j :: Initial
 	= 'J':char		{ J }

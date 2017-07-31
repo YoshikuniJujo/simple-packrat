@@ -3,6 +3,8 @@
 module MakeYjPap (pap) where
 
 import Control.Arrow
+import Control.Monad
+import qualified Data.List.NonEmpty as NE
 import Data.Char
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
@@ -11,6 +13,9 @@ import ParseYjPap
 
 pap :: QuasiQuoter
 pap = QuasiQuoter {
+	quoteExp = undefined,
+	quotePat = undefined,
+	quoteType = undefined,
 	quoteDec = makePap
 	}
 
@@ -31,7 +36,7 @@ makeDerivs rs = DataD [] (mkName "Derivs") [] Nothing [
 			withDerivsType $ ConT ''Char )] ] []
 
 makeDerivs1 :: Rule -> (Name, Bang, Type)
-makeDerivs1 (Rule n t _ _) = (n, defBang, withDerivsType t)
+makeDerivs1 (Rule n t _) = (n, defBang, withDerivsType t)
 
 withDerivsType :: Type -> Type
 withDerivsType t = ConT ''Maybe `AppT` (t `tupleType` ConT (mkName "Derivs"))
@@ -87,22 +92,26 @@ takeArgs :: Exp -> [Exp] -> Exp
 takeArgs = foldl AppE
 
 makeP :: Rule -> Q [Dec]
-makeP (Rule n t d r) = do
-	(def, d') <- makeDef d
+makeP (Rule n t drs) = do
+	does <- mapM (uncurry makeDoE) $ NE.toList drs
 	return [
 		mkTypeDec (putP n) t,
 		FunD (putP n) [
-			Clause [VarP $ mkName "d"] (NormalB . DoE $ def ++
-				[
-					NoBindS $ VarE 'return `AppE` TupE [
-						r, VarE d' ] ]) [] ]
-		]
+			Clause	[VarP $ mkName "d"]
+				(NormalB $ VarE 'msum `AppE` ListE does)
+				[] ] ]
 
 mkTypeDec :: Name -> Type -> Dec
 mkTypeDec n t = SigD n $ ConT (mkName "Derivs") `arrT` withDerivsType t
 
 makeDef :: Def -> Q ([Stmt], Name)
 makeDef ds = first concat <$> forStM makeDef1 (mkName "d") ds
+
+makeDoE :: Def -> Result -> Q Exp
+makeDoE d r = do
+	(def, d') <- makeDef d
+	return . DoE $ def ++ [
+		NoBindS $ VarE 'return `AppE` TupE [r, VarE d'] ]
 
 forStM :: Monad m => (s -> x -> m (y, s)) -> s -> [x] -> m ([y], s)
 forStM f s0 (x : xs) = do

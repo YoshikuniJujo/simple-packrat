@@ -5,6 +5,7 @@ module ParseYjPap (
 	Rules, Rule(..), Def, Def1, Result, ruleName) where
 
 import Data.Char
+import Data.List.NonEmpty
 import Text.Papillon
 import Language.Haskell.TH
 
@@ -15,10 +16,10 @@ parseYjPap src = case runError . rules $ parse src of
 
 type Rules = [Rule]
 
-data Rule = Rule Name Type Def Result deriving Show
+data Rule = Rule Name Type (NonEmpty (Def, Result)) deriving Show
 
 ruleName :: Rule -> Name
-ruleName (Rule n _ _ _) = n
+ruleName (Rule n _ _) = n
 
 type Def = [Def1]
 type Def1 = (Pat, Name)
@@ -32,14 +33,21 @@ rules :: Rules
 
 rule :: Rule
 	= n:<isLower>+ _:spaces ':' ':' _:spaces
-		t:typ _:spaces '=' _:spaces d:def _:spaces
-		'{' _:spaces r:expr _:spaces '}'
-					{ Rule (mkName n) t d r }
+		t:typ _:spaces '=' _:spaces drs:defRslts
+					{ Rule (mkName n) t drs }
 
 typ :: Type
 	= c:<isUpper> cs:<isLower>*	{ ConT . mkName $ c : cs }
 	/ '(' _:spaces t1:typ _:spaces ',' _:spaces t2:typ _:spaces ')'
 					{ TupleT 2 `AppT` t1 `AppT` t2 }
+
+defRslts :: NonEmpty (Def, Result)
+	= dr:defRslt drs:(_:spaces '/' _:spaces drs:defRslt { drs })*
+					{ dr :| drs }
+
+defRslt :: (Def, Result)
+	= d:def _:spaces '{' _:spaces r:expr _:spaces '}'
+					{ (d, r) }
 
 def :: Def
 	= d:def1 _:spaces ds:def	{ d : ds }

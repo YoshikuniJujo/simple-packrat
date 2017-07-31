@@ -3,6 +3,7 @@ yj :: (Initial, Initial)
 ;
 y :: Initial
 	= 'Y':char		{ Y }
+	/ 'M':char		{ M }
 ;
 j :: Initial
 	= 'J':char		{ J }
