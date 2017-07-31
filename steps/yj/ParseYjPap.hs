@@ -27,9 +27,8 @@ type Result = Exp
 [papillon|
 
 rules :: Rules
-	= _:spaces r:rule _:spaces ';' rs:rules		
-					{ r : rs }
-	/				{ [] }
+	= rs:( _:spaces r:rule _:spaces ';' { r })*
+					{ rs }
 
 rule :: Rule
 	= n:<isLower>+ _:spaces ':' ':' _:spaces
