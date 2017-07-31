@@ -27,7 +27,7 @@ type Result = Exp
 [papillon|
 
 rules :: Rules
-	= r:rule _:spaces ';' _:spaces rs:rules		
+	= _:spaces r:rule _:spaces ';' rs:rules		
 					{ r : rs }
 	/				{ [] }
 

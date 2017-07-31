@@ -87,10 +87,10 @@ executable useYjMemo
                        template-haskell
   default-language:    Haskell2010
 
-executable makeYjPap
+executable useYjPap
   hs-source-dirs:      steps/yj
-  main-is:             makeYjPap.hs
-  other-modules:       ParseYjPap
+  main-is:             useYjPap.hs
+  other-modules:       ParseYjPap, MakeYjPap
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall -fno-warn-tabs
   build-depends:       base, simple-packrat, papillon, transformers, monads-tf,
                        template-haskell

@@ -1,25 +1,26 @@
 {-# LANGUAGE TemplateHaskell, TupleSections #-}
 
+module MakeYjPap (pap) where
+
 import Control.Arrow
 import Data.Char
 import Language.Haskell.TH
+import Language.Haskell.TH.Quote
 
 import ParseYjPap
 
-main :: IO ()
-main = do
-	str <- getContents
-	case parseYjPap str of
-		Left e -> putStrLn e
+pap :: QuasiQuoter
+pap = QuasiQuoter {
+	quoteDec = makePap
+	}
+
+makePap :: String -> Q [Dec]
+makePap src = do
+	case parseYjPap src of
+		Left e -> fail e
 		Right r -> do
-			putStrLn "RULES"
-			print r
-			putStrLn "\nDerivs"
-			print . ppr $ makeDerivs r
-			putStrLn "\nparse"
-			print . ppr $ makeParse r
-			putStrLn "\np functions"
-			print . ppr . concat =<< mapM (runQ . makeP) r
+			p <- concat <$> mapM makeP r
+			return $ makeDerivs r : makeParse r ++ p
 
 makeDerivs :: Rules -> Dec
 makeDerivs rs = DataD [] (mkName "Derivs") [] Nothing [
@@ -89,11 +90,12 @@ makeP :: Rule -> Q [Dec]
 makeP (Rule n t d r) = do
 	(def, d') <- makeDef d
 	return [
-		mkTypeDec n t,
-		FunD n [Clause [VarP $ mkName "d"] (NormalB . DoE $ def ++
-			[
-				NoBindS $ VarE 'return `AppE` TupE [
-					r, VarE $ mkName "d" ] ]) [] ]
+		mkTypeDec (putP n) t,
+		FunD (putP n) [
+			Clause [VarP $ mkName "d"] (NormalB . DoE $ def ++
+				[
+					NoBindS $ VarE 'return `AppE` TupE [
+						r, VarE d' ] ]) [] ]
 		]
 
 mkTypeDec :: Name -> Type -> Dec
@@ -112,10 +114,6 @@ forStM _ s0 [] = return ([], s0)
 makeDef1 :: Name -> Def1 -> Q ([Stmt], Name)
 makeDef1 d (p, n) = do
 		d' <- newName "d"
-		t <- newName "t"
 		return $ (, d') [
-			BindS (TupP [VarP t, VarP d']) $ VarE n `AppE` VarE d
+			BindS (TupP [p, VarP d']) $ VarE n `AppE` VarE d
 			]
-
-nameDs :: [Name]
-nameDs = iterate primed $ mkName "d"
