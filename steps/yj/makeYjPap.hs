@@ -1,5 +1,6 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, TupleSections #-}
 
+import Control.Arrow
 import Data.Char
 import Language.Haskell.TH
 
@@ -17,6 +18,8 @@ main = do
 			print . ppr $ makeDerivs r
 			putStrLn "\nparse"
 			print . ppr $ makeParse r
+			putStrLn "\np functions"
+			print . ppr . concat =<< mapM (runQ . makeP) r
 
 makeDerivs :: Rules -> Dec
 makeDerivs rs = DataD [] (mkName "Derivs") [] Nothing [
@@ -81,3 +84,38 @@ t1 `arrT` t2 = ArrowT `AppT` t1 `AppT` t2
 
 takeArgs :: Exp -> [Exp] -> Exp
 takeArgs = foldl AppE
+
+makeP :: Rule -> Q [Dec]
+makeP (Rule n t d r) = do
+	(def, d') <- makeDef d
+	return [
+		mkTypeDec n t,
+		FunD n [Clause [VarP $ mkName "d"] (NormalB . DoE $ def ++
+			[
+				NoBindS $ VarE 'return `AppE` TupE [
+					r, VarE $ mkName "d" ] ]) [] ]
+		]
+
+mkTypeDec :: Name -> Type -> Dec
+mkTypeDec n t = SigD n $ ConT (mkName "Derivs") `arrT` withDerivsType t
+
+makeDef :: Def -> Q ([Stmt], Name)
+makeDef ds = first concat <$> forStM makeDef1 (mkName "d") ds
+
+forStM :: Monad m => (s -> x -> m (y, s)) -> s -> [x] -> m ([y], s)
+forStM f s0 (x : xs) = do
+	(y, s1) <- f s0 x
+	(ys, s') <- forStM f s1 xs
+	return (y : ys, s')
+forStM _ s0 [] = return ([], s0)
+
+makeDef1 :: Name -> Def1 -> Q ([Stmt], Name)
+makeDef1 d (p, n) = do
+		d' <- newName "d"
+		t <- newName "t"
+		return $ (, d') [
+			BindS (TupP [VarP t, VarP d']) $ VarE n `AppE` VarE d
+			]
+
+nameDs :: [Name]
+nameDs = iterate primed $ mkName "d"
