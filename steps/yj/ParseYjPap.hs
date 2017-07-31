@@ -40,6 +40,7 @@ typ :: Type
 	= c:<isUpper> cs:<isLower>*	{ ConT . mkName $ c : cs }
 	/ '(' _:spaces t1:typ _:spaces ',' _:spaces t2:typ _:spaces ')'
 					{ TupleT 2 `AppT` t1 `AppT` t2 }
+	/ '[' t:typ ']'			{ ListT `AppT` t }
 
 defRslts :: NonEmpty (Def, Result)
 	= dr:defRslt drs:(_:spaces '/' _:spaces drs:defRslt { drs })*
@@ -64,10 +65,16 @@ spaces :: ()
 	= _:<isSpace>*
 
 expr :: Exp
+	= e:expr1 _:spaces ':' _:spaces es:expr1
+					{ ConE (mkName ":") `AppE` e `AppE` es }
+	/ e:expr1			{ e }
+
+expr1 :: Exp
 	= c:<isUpper> cs:<isAlpha>*	{ ConE . mkName $ c : cs }
 	/ c:<isLower> cs:<isAlpha>*	{ VarE . mkName $ c : cs }
 	/ '\'' c:<(/= '\'')> '\''	{ LitE $ CharL c }
 	/ '(' _:spaces e1:expr _:spaces ',' _:spaces e2:expr _:spaces ')'
 					{ TupE [e1, e2] }
+	/ '[' ']'			{ ConE $ mkName "[]" }
 
 |]

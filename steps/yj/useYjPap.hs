@@ -13,15 +13,16 @@ data Initial = Y | M | J deriving Show
 
 [pap|
 
-yj :: (Initial, Initial)
+yj :: (Initial, [Initial])
 	= y:y j:j		{ (y, j) }
 ;
 y :: Initial
 	= 'Y':char		{ Y }
 	/ 'M':char		{ M }
 ;
-j :: Initial
-	= 'J':char		{ J }
+j :: [Initial]
+	= 'J':char js:j		{ J : js }
+	/			{ [] }
 ;
 
 |]
