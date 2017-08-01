@@ -1,4 +1,5 @@
 import System.Environment
+import Control.Monad.State
 
 main :: IO ()
 main = print . (fst <$>) . yj . parse . head =<< getArgs
@@ -23,21 +24,21 @@ parse s = d
 		_ -> Nothing
 
 pYj :: Derivs -> Maybe ((Initial, Initial), Derivs)
-pYj d = do
-	(y', d') <- y d
-	(j', d'') <- j d'
-	return ((y', j'), d'')
+pYj = runStateT $ do
+	y' <- StateT y
+	j' <- StateT j
+	return (y', j')
 
 pY :: Derivs -> Maybe (Initial, Derivs)
-pY d = do
-	(y', d') <- char d
+pY = runStateT $ do
+	y' <- StateT char
 	case y' of
-		'Y' -> return (Y, d')
+		'Y' -> return Y
 		_ -> fail "not parsed"
 
 pJ :: Derivs -> Maybe (Initial, Derivs)
-pJ d = do
-	(j', d') <- char d
+pJ = runStateT $ do
+	j' <- StateT char
 	case j' of
-		'J' -> return (J, d')
+		'J' -> return J
 		_ -> fail "not parsed"
