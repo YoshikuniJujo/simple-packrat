@@ -17,14 +17,14 @@ yj :: (Maybe Initial, [Initial], [Initial])
 	= i:i? y:y j:j		{ (i, y, j) }
 ;
 i :: Initial
-	= 'I':char		{ I }
+	= 'I'			{ I }
 ;
 y :: [Initial]
-	= m:('M':char	{ M })+ { m }
-	/ y:('Y':char	{ Y })*	{ y }
+	= m:('M' { M })+	{ m }
+	/ y:('Y' { Y })*	{ y }
 ;
 j :: [Initial]
-	= 'J':char js:j		{ J : js }
+	= 'J' js:j		{ J : js }
 	/			{ [] }
 ;
 

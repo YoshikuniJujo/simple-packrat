@@ -75,6 +75,7 @@ def1 :: (Pat, Nest)
 	= p:pat ':' d:<isLower>+	{ (p, Simple $ mkName d) }
 	/ p:pat ':' '(' _:spaces dr:defRslt _:spaces ')'
 					{ (p, DefRslt dr) }
+	/ p:pat				{ (p, Simple $ mkName "char") }
 
 listify :: Listify
 	= '*'				{ List }
