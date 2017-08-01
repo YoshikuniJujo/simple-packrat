@@ -68,6 +68,7 @@ def1 :: Def1
 
 listify :: Listify
 	= '*'				{ List }
+	/ '+'				{ List1 }
 	/				{ Once }
 
 pat :: Pat

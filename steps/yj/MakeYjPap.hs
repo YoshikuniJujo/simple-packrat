@@ -2,7 +2,6 @@
 
 module MakeYjPap (pap) where
 
-import Control.Arrow
 import Control.Monad
 import Control.Monad.State
 import qualified Data.List.NonEmpty as NE
@@ -102,7 +101,7 @@ takeArgs = foldl AppE
 
 makeP :: Rule -> Q [Dec]
 makeP (Rule n t drs) = do
-	does <- mapM (uncurry . makeDoE $ mkName "d") $ NE.toList drs
+	does <- mapM (uncurry makeDoE) $ NE.toList drs
 	return [
 		mkTypeDec (putP n) t,
 		ValD (VarP $ putP n) (
@@ -113,29 +112,21 @@ makeP (Rule n t drs) = do
 mkTypeDec :: Name -> Type -> Dec
 mkTypeDec n t = SigD n $ ConT (mkName "Derivs") `arrT` withDerivsType t
 
-makeDoE :: Name -> Def -> Result -> Q Exp
-makeDoE dn d r = do
-	(def, d') <- makeDef dn d
+makeDoE :: Def -> Result -> Q Exp
+makeDoE d r = do
+	def <- makeDef d
 	return . DoE $ def ++ [NoBindS $ VarE 'return `AppE` r]
 
-makeDef :: Name -> Def -> Q ([Stmt], Name)
-makeDef d ds = first concat <$> forStM makeDef1 d ds
+makeDef :: Def -> Q [Stmt]
+makeDef ds = concat <$> mapM makeDef1 ds
 
-forStM :: Monad m => (s -> x -> m (y, s)) -> s -> [x] -> m ([y], s)
-forStM f s0 (x : xs) = do
-	(y, s1) <- f s0 x
-	(ys, s') <- forStM f s1 xs
-	return (y : ys, s')
-forStM _ s0 [] = return ([], s0)
-
-makeDef1 :: Name -> Def1 -> Q ([Stmt], Name)
-makeDef1 d (p, Simple n) = do
-	d' <- newName "d"
-	return $ (, d') [BindS p $ ConE 'StateT `AppE` VarE n]
-makeDef1 d (p, DefRslt lf dr) = do
-	d' <- newName "d"
-	doe <- uncurry (makeDoE d) dr
+makeDef1 :: Def1 -> Q [Stmt]
+makeDef1 (p, Simple n) = do
+	return [BindS p $ ConE 'StateT `AppE` VarE n]
+makeDef1 (p, DefRslt lf dr) = do
+	doe <- uncurry makeDoE dr
 	let	l = case lf of
 			Once -> VarE 'id
 			List -> VarE $ mkName "list"
-	return $ (, d') [BindS p $ l `AppE` doe]
+			List1 -> VarE $ mkName "list1"
+	return $ [BindS p $ l `AppE` doe]
