@@ -6,5 +6,5 @@ y :: Initial
 	/ 'M':char		{ M }
 ;
 j :: Initial
-	= js:('J':char	{ J })*	{ js }
+	= js:('J':char	{ J })?	{ js }
 ;

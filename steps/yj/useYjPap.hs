@@ -9,12 +9,15 @@ main = do
 	src : _ <- getArgs
 	print . (fst <$>) . yj $ parse src
 
-data Initial = Y | M | J deriving Show
+data Initial = Y | M | I | J deriving Show
 
 [pap|
 
-yj :: ([Initial], [Initial])
-	= y:y j:j		{ (y, j) }
+yj :: (Maybe Initial, [Initial], [Initial])
+	= i:i? y:y j:j		{ (i, y, j) }
+;
+i :: Initial
+	= 'I':char		{ I }
 ;
 y :: [Initial]
 	= m:('M':char	{ M })+ { m }

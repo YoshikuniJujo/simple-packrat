@@ -32,7 +32,10 @@ listDec :: Q [Dec]
 listDec = [d|
 	list, list1 :: MonadPlus m => m a -> m [a];
 	list p = list1 p `mplus` return [];
-	list1 p = (:) <$> p <*> list p
+	list1 p = (:) <$> p <*> list p;
+
+	optional :: MonadPlus m => m a -> m (Maybe a);
+	optional p = (Just <$> p) `mplus` return Nothing
 	|]
 
 makeDerivs :: Rules -> Dec
@@ -121,12 +124,18 @@ makeDef :: Def -> Q [Stmt]
 makeDef ds = concat <$> mapM makeDef1 ds
 
 makeDef1 :: Def1 -> Q [Stmt]
-makeDef1 (p, Simple n) = do
-	return [BindS p $ ConE 'StateT `AppE` VarE n]
-makeDef1 (p, DefRslt lf dr) = do
+makeDef1 (p, Simple n, lf) = do
+	let	l = case lf of
+			Once -> VarE 'id
+			List -> VarE $ mkName "list"
+			List1 -> VarE $ mkName "list1"
+			Option -> VarE $ mkName "optional"
+	return [BindS p $ l `AppE` (ConE 'StateT `AppE` VarE n)]
+makeDef1 (p, DefRslt dr, lf) = do
 	doe <- uncurry makeDoE dr
 	let	l = case lf of
 			Once -> VarE 'id
 			List -> VarE $ mkName "list"
 			List1 -> VarE $ mkName "list1"
+			Option -> VarE $ mkName "optional"
 	return $ [BindS p $ l `AppE` doe]

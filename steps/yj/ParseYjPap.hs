@@ -22,12 +22,12 @@ ruleName :: Rule -> Name
 ruleName (Rule n _ _) = n
 
 type Def = [Def1]
-type Def1 = (Pat, Nest)
+type Def1 = (Pat, Nest, Listify)
 type Result = Exp
 
 data Nest
 	= Simple Name
-	| DefRslt Listify (Def, Result)
+	| DefRslt (Def, Result)
 	deriving Show
 
 data Listify = Once | List | List1 | Option deriving Show
@@ -44,9 +44,18 @@ rule :: Rule
 					{ Rule (mkName n) t drs }
 
 typ :: Type
+	= t1:typ1 _:spaces t2:typ1	{ t1 `AppT` t2 }
+	/ t:typ1			{ t }
+
+typ1 :: Type
 	= c:<isUpper> cs:<isLower>*	{ ConT . mkName $ c : cs }
 	/ '(' _:spaces t1:typ _:spaces ',' _:spaces t2:typ _:spaces ')'
 					{ TupleT 2 `AppT` t1 `AppT` t2 }
+	/ '(' _:spaces t1:typ _:spaces ',' _:spaces
+		t2:typ _:spaces ',' _:spaces
+		t3:typ _:spaces ')'
+					{ TupleT 3 `AppT` t1 `AppT`
+						t2 `AppT` t3 }
 	/ '[' t:typ ']'			{ ListT `AppT` t }
 
 defRslts :: NonEmpty (Def, Result)
@@ -58,17 +67,19 @@ defRslt :: (Def, Result)
 					{ (d, r) }
 
 def :: Def
-	= d:def1 _:spaces ds:def	{ d : ds }
+	= (p, n):def1 l:listify _:spaces ds:def
+					{ (p, n, l) : ds }
 	/				{ [] }
 
-def1 :: Def1
+def1 :: (Pat, Nest)
 	= p:pat ':' d:<isLower>+	{ (p, Simple $ mkName d) }
-	/ p:pat ':' '(' _:spaces dr:defRslt _:spaces ')' l:listify
-					{ (p, DefRslt l dr) }
+	/ p:pat ':' '(' _:spaces dr:defRslt _:spaces ')'
+					{ (p, DefRslt dr) }
 
 listify :: Listify
 	= '*'				{ List }
 	/ '+'				{ List1 }
+	/ '?'				{ Option }
 	/				{ Once }
 
 pat :: Pat
@@ -89,6 +100,10 @@ expr1 :: Exp
 	/ '\'' c:<(/= '\'')> '\''	{ LitE $ CharL c }
 	/ '(' _:spaces e1:expr _:spaces ',' _:spaces e2:expr _:spaces ')'
 					{ TupE [e1, e2] }
+	/ '(' _:spaces e1:expr _:spaces ',' _:spaces
+		e2:expr _:spaces ',' _:spaces
+		e3:expr _:spaces ')'
+					{ TupE [e1, e2, e3] }
 	/ '[' ']'			{ ConE $ mkName "[]" }
 
 |]
