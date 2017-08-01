@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, TupleSections #-}
+{-# LANGUAGE TemplateHaskell, TupleSections, LambdaCase #-}
 
 module MakeYjPap (pap) where
 
@@ -124,18 +124,20 @@ makeDef :: Def -> Q [Stmt]
 makeDef ds = concat <$> mapM makeDef1 ds
 
 makeDef1 :: Def1 -> Q [Stmt]
-makeDef1 (p, Simple n, lf) = do
-	let	l = case lf of
-			Once -> VarE 'id
-			List -> VarE $ mkName "list"
-			List1 -> VarE $ mkName "list1"
-			Option -> VarE $ mkName "optional"
-	return [BindS p $ l `AppE` (ConE 'StateT `AppE` VarE n)]
-makeDef1 (p, DefRslt dr, lf) = do
+makeDef1 (p, Simple n, mg, lf) = return $
+	[BindS p $ makeListify lf `AppE` (ConE 'StateT `AppE` VarE n)] ++
+	makeGuard mg
+makeDef1 (p, DefRslt dr, mg, lf) = do
 	doe <- uncurry makeDoE dr
-	let	l = case lf of
-			Once -> VarE 'id
-			List -> VarE $ mkName "list"
-			List1 -> VarE $ mkName "list1"
-			Option -> VarE $ mkName "optional"
-	return $ [BindS p $ l `AppE` doe]
+	return $ [BindS p $ makeListify lf `AppE` doe] ++ makeGuard mg
+
+makeListify :: Listify -> Exp
+makeListify = \case
+	Once -> VarE 'id
+	List -> VarE $ mkName "list"
+	List1 -> VarE $ mkName "list1"
+	Option -> VarE $ mkName "optional"
+
+makeGuard :: Maybe Grd -> [Stmt]
+makeGuard (Just g) = [NoBindS $ VarE 'guard `AppE` g]
+makeGuard Nothing = []

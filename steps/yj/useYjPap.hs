@@ -1,5 +1,6 @@
 {-# LANGUAGE QuasiQuotes #-}
 
+import Data.Char
 import System.Environment
 
 import MakeYjPap
@@ -9,7 +10,7 @@ main = do
 	src : _ <- getArgs
 	print . (fst <$>) . yj $ parse src
 
-data Initial = Y | M | I | J deriving Show
+data Initial = Y | M | U Char | L Char | J deriving Show
 
 [pap|
 
@@ -17,7 +18,8 @@ yj :: (Maybe Initial, [Initial], [Initial])
 	= i:i? y:y j:j		{ (i, y, j) }
 ;
 i :: Initial
-	= 'I'			{ I }
+	= u[isUpper u]		{ U u }
+	/ l[isLower l]		{ L l }
 ;
 y :: [Initial]
 	= m:('M' { M })+	{ m }

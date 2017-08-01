@@ -1,7 +1,7 @@
 {-# LANGUAGE QuasiQuotes, TypeFamilies #-}
 
 module ParseYjPap (
-	Rules, Rule(..), Def, Def1, Result, Nest(..), Listify(..),
+	Rules, Rule(..), Def, Def1, Result, Nest(..), Listify(..), Grd,
 	parseYjPap, ruleName) where
 
 import Data.Char
@@ -22,13 +22,15 @@ ruleName :: Rule -> Name
 ruleName (Rule n _ _) = n
 
 type Def = [Def1]
-type Def1 = (Pat, Nest, Listify)
+type Def1 = (Pat, Nest, Maybe Grd, Listify)
 type Result = Exp
 
 data Nest
 	= Simple Name
 	| DefRslt (Def, Result)
 	deriving Show
+
+type Grd = Exp
 
 data Listify = Once | List | List1 | Option deriving Show
 
@@ -67,9 +69,13 @@ defRslt :: (Def, Result)
 					{ (d, r) }
 
 def :: Def
-	= (p, n):def1 l:listify _:spaces ds:def
-					{ (p, n, l) : ds }
+	= (p, n, g):defg1 l:listify _:spaces ds:def
+					{ (p, n, g, l) : ds }
 	/				{ [] }
+
+defg1 :: (Pat, Nest, Maybe Grd)
+	= (p, n):def1 g:('[' g':expr ']' { g' })?
+					{ (p, n, g) }
 
 def1 :: (Pat, Nest)
 	= p:pat ':' d:<isLower>+	{ (p, Simple $ mkName d) }
@@ -93,6 +99,7 @@ spaces :: ()
 expr :: Exp
 	= e:expr1 _:spaces ':' _:spaces es:expr1
 					{ ConE (mkName ":") `AppE` e `AppE` es }
+	/ e1:expr1 _:spaces e2:expr1	{ e1 `AppE` e2 }
 	/ e:expr1			{ e }
 
 expr1 :: Exp

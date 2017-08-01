@@ -2,7 +2,7 @@ yj :: (Initial, Initial)
 	= y:y j:j		{ (y, j) }
 ;
 y :: Initial
-	= 'Y':char		{ Y }
+	= c:char[c == 'Y']	{ c }
 	/ 'M':char		{ M }
 ;
 j :: Initial
