@@ -28,6 +28,7 @@ type Result = Exp
 data Nest
 	= Simple Name
 	| DefRslt (Def, Result)
+	| Sugar Exp
 	deriving Show
 
 type Grd = Exp
@@ -81,8 +82,9 @@ def1 :: (Pat, Nest)
 	= p:pat ':' d:<isLower>+	{ (p, Simple $ mkName d) }
 	/ p:pat ':' '(' _:spaces dr:defRslt _:spaces ')'
 					{ (p, DefRslt dr) }
+	/ p:pat ':' '<' g:expr '>'	{ (p, Sugar g) }
 	/ p:pat				{ (p, Simple $ mkName "char") }
-
+;
 listify :: Listify
 	= '*'				{ List }
 	/ '+'				{ List1 }

@@ -19,7 +19,7 @@ yj :: (Maybe Initial, [Initial], [Initial])
 ;
 i :: Initial
 	= u[isUpper u]		{ U u }
-	/ l[isLower l]		{ L l }
+	/ l:<isLower>		{ L l }
 ;
 y :: [Initial]
 	= m:('M' { M })+	{ m }

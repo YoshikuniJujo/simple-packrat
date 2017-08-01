@@ -130,6 +130,16 @@ makeDef1 (p, Simple n, mg, lf) = return $
 makeDef1 (p, DefRslt dr, mg, lf) = do
 	doe <- uncurry makeDoE dr
 	return $ [BindS p $ makeListify lf `AppE` doe] ++ makeGuard mg
+makeDef1 (p, Sugar s, mg, lf) = do
+	x <- newName "x"
+	return $ [
+		BindS p $ makeListify lf `AppE` (DoE [
+			BindS (VarP x) $ ConE 'StateT `AppE`
+				VarE (mkName "char"),
+			head . makeGuard . Just $ s `AppE` VarE x,
+			NoBindS $ VarE 'return `AppE` VarE x
+			])
+		] ++ makeGuard mg
 
 makeListify :: Listify -> Exp
 makeListify = \case
