@@ -21,11 +21,19 @@ pap = QuasiQuoter {
 
 makePap :: String -> Q [Dec]
 makePap src = do
+	ld <- listDec
 	case parseYjPap src of
 		Left e -> fail e
 		Right r -> do
 			p <- concat <$> mapM makeP r
-			return $ makeDerivs r : makeParse r ++ p
+			return $ makeDerivs r : makeParse r ++ p ++ ld
+
+listDec :: Q [Dec]
+listDec = [d|
+	list, list1 :: MonadPlus m => m a -> m [a];
+	list p = list1 p `mplus` return [];
+	list1 p = (:) <$> p <*> list p
+	|]
 
 makeDerivs :: Rules -> Dec
 makeDerivs rs = DataD [] (mkName "Derivs") [] Nothing [
@@ -93,7 +101,7 @@ takeArgs = foldl AppE
 
 makeP :: Rule -> Q [Dec]
 makeP (Rule n t drs) = do
-	does <- mapM (uncurry makeDoE) $ NE.toList drs
+	does <- mapM (uncurry . makeDoE $ mkName "d") $ NE.toList drs
 	return [
 		mkTypeDec (putP n) t,
 		FunD (putP n) [
@@ -104,12 +112,12 @@ makeP (Rule n t drs) = do
 mkTypeDec :: Name -> Type -> Dec
 mkTypeDec n t = SigD n $ ConT (mkName "Derivs") `arrT` withDerivsType t
 
-makeDef :: Def -> Q ([Stmt], Name)
-makeDef ds = first concat <$> forStM makeDef1 (mkName "d") ds
+makeDef :: Name -> Def -> Q ([Stmt], Name)
+makeDef d ds = first concat <$> forStM makeDef1 d ds
 
-makeDoE :: Def -> Result -> Q Exp
-makeDoE d r = do
-	(def, d') <- makeDef d
+makeDoE :: Name -> Def -> Result -> Q Exp
+makeDoE dn d r = do
+	(def, d') <- makeDef dn d
 	return . DoE $ def ++ [
 		NoBindS $ VarE 'return `AppE` TupE [r, VarE d'] ]
 
@@ -121,8 +129,17 @@ forStM f s0 (x : xs) = do
 forStM _ s0 [] = return ([], s0)
 
 makeDef1 :: Name -> Def1 -> Q ([Stmt], Name)
-makeDef1 d (p, n) = do
-		d' <- newName "d"
-		return $ (, d') [
-			BindS (TupP [p, VarP d']) $ VarE n `AppE` VarE d
-			]
+makeDef1 d (p, Simple n) = do
+	d' <- newName "d"
+	return $ (, d') [
+		BindS (TupP [p, VarP d']) $ VarE n `AppE` VarE d
+		]
+makeDef1 d (p, DefRslt lf dr) = do
+	d' <- newName "d"
+	doe <- uncurry (makeDoE d) dr
+	let	l = case lf of
+			Once -> VarE 'id
+			List -> VarE $ mkName "list"
+	return $ (, d') [
+		BindS (TupP [p, VarP d']) $ l `AppE` doe
+		]

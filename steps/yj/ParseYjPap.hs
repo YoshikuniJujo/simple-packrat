@@ -1,8 +1,8 @@
 {-# LANGUAGE QuasiQuotes, TypeFamilies #-}
 
 module ParseYjPap (
-	parseYjPap,
-	Rules, Rule(..), Def, Def1, Result, ruleName) where
+	Rules, Rule(..), Def, Def1, Result, Nest(..), Listify(..),
+	parseYjPap, ruleName) where
 
 import Data.Char
 import Data.List.NonEmpty
@@ -22,8 +22,15 @@ ruleName :: Rule -> Name
 ruleName (Rule n _ _) = n
 
 type Def = [Def1]
-type Def1 = (Pat, Name)
+type Def1 = (Pat, Nest)
 type Result = Exp
+
+data Nest
+	= Simple Name
+	| DefRslt Listify (Def, Result)
+	deriving Show
+
+data Listify = Once | List | List1 | Option deriving Show
 
 [papillon|
 
@@ -55,7 +62,13 @@ def :: Def
 	/				{ [] }
 
 def1 :: Def1
-	= p:pat ':' d:<isLower>+	{ (p, mkName d) }
+	= p:pat ':' d:<isLower>+	{ (p, Simple $ mkName d) }
+	/ p:pat ':' '(' _:spaces dr:defRslt _:spaces ')' l:listify
+					{ (p, DefRslt l dr) }
+
+listify :: Listify
+	= '*'				{ List }
+	/				{ Once }
 
 pat :: Pat
 	= p:<isLower>+			{ VarP $ mkName p }
